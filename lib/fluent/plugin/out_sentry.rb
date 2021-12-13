@@ -28,19 +28,19 @@ module Fluent
       config_param :flush_interval, :time, :default => 1
       config_param :hostname_command, :string, :default => 'hostname'
 
+      config_section :buffer do
+        config_set_default :flush_mode, :immediate
+      end
+
       def initialize
         require 'time'
         require "sentry-ruby"
-
-        log.debug("asdfa")
 
         super
       end
 
       def configure(conf)
         super
-
-        log.debug(endpoint_url: @endpoint_url)
 
         if @endpoint_url.nil?
           raise Fluent::ConfigError, "sentry: missing parameter for 'endpoint_url'"
@@ -51,14 +51,10 @@ module Fluent
         Sentry.init do |config|
           config.environment = 'fluentd'
           config.dsn = @endpoint_url
-        
           config.send_default_pii = true
           config.send_modules = false
-        
           config.transport.timeout = 2
-        
           config.breadcrumbs_logger = [:sentry_logger, :http_logger]
-        
           config.before_send = lambda do |event, hint|
             if hint[:exception].is_a?(ZeroDivisionError)
               nil
@@ -66,7 +62,6 @@ module Fluent
               event
             end
           end
-        
           config.before_breadcrumb = lambda do |breadcrumb, hint|
             breadcrumb.message = "foo"
             breadcrumb
@@ -76,8 +71,6 @@ module Fluent
 
       def write(chunk)
         chunk.msgpack_each do |tag, time, record|
-          log.debug("asdfas")
-
           begin
             Sentry.with_scope do |scope|
               scope.set_user(id: 1)
