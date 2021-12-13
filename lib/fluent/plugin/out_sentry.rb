@@ -46,8 +46,6 @@ module Fluent
           raise Fluent::ConfigError, "sentry: missing parameter for 'endpoint_url'"
         end
     
-        @hostname = `#{@hostname_command}`.chomp
-    
         Sentry.init do |config|
           config.environment = 'fluentd'
           config.dsn = @endpoint_url
@@ -56,6 +54,7 @@ module Fluent
           config.transport.timeout = 2
           config.breadcrumbs_logger = [:sentry_logger, :http_logger]
           config.before_send = lambda do |event, hint|
+            log.debug(event, hint)
             if hint[:exception].is_a?(ZeroDivisionError)
               nil
             else
@@ -63,14 +62,16 @@ module Fluent
             end
           end
           config.before_breadcrumb = lambda do |breadcrumb, hint|
+            log.debug("wewweerwr")
+            log.debug(breadcrumb, hint)
             breadcrumb.message = "foo"
-            breadcrumb
           end
         end
       end
 
       def write(chunk)
         chunk.msgpack_each do |tag, time, record|
+          log.debug(time)
           begin
             Sentry.with_scope do |scope|
               scope.set_user(id: 1)
@@ -84,7 +85,7 @@ module Fluent
                   level: record['level'] || @default_level,
                   logger: record['logger'] || @default_logger,
                   culprit: record['culprit'] || nil,
-                  server_name: record['server_name'] || @hostname,
+                  server_name: record['server_name'] || `#{@hostname_command}`.chomp,
                   # release: record['release'] if record['release'],
                   tags: record['tags'],
                   extra: record.reject{ |key| EVENT_KEYS.include?(key) }
