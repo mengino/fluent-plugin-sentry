@@ -45,7 +45,7 @@ module Fluent
         if @endpoint_url.nil?
           raise Fluent::ConfigError, "sentry: missing parameter for 'endpoint_url'"
         end
-    
+
         Sentry.init do |config|
           config.environment = 'fluentd'
           config.dsn = @endpoint_url
@@ -71,7 +71,6 @@ module Fluent
 
       def write(chunk)
         chunk.msgpack_each do |tag, time, record|
-          log.debug(time)
           begin
             Sentry.with_scope do |scope|
               scope.set_user(id: 1)
@@ -97,7 +96,7 @@ module Fluent
                 message: "Authenticated user 1111",
                 level: "info"
               ))
-              
+
               Sentry.capture_message(record['message'] || "test message", level: record['level'] || @default_level)
             end
           rescue => e
