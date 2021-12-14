@@ -1,18 +1,3 @@
-#
-# Copyright 2021- TODO: Write your name
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 require "fluent/plugin/output"
 
 module Fluent
@@ -20,13 +5,18 @@ module Fluent
     class SentryOutput < Fluent::Plugin::Output
       Fluent::Plugin.register_output("sentry", self)
 
-      EVENT_KEYS = %w(message timestamp time_spent level logger culprit server_name release tags)
+      USER_KEYS = %w('id', 'username', 'email', 'ip_address')
 
-      config_param :endpoint_url, :string, :secret => true
-      config_param :default_level, :enum, list: [:fatal, :error, :warning, :info, :debug], :default => 'error'
-      config_param :default_logger, :string, :default => 'fluentd'
       config_param :flush_interval, :time, :default => 1
-      config_param :hostname_command, :string, :default => 'hostname'
+      config_param :dsn, :string, :secret => true
+      config_param :title, :string, :default => 'test log'
+      config_param :level, :enum, list: [:fatal, :error, :warning, :info, :debug], :default => 'info'
+      config_param :timestamp, :string, :default => 'timestamp'
+      config_param :environment, :string, :default => 'dev'
+
+      config_param :user_keys, :array, :default => [], value_type: :string
+      config_param :tag_keys, :array, :default => [], value_type: :string
+      config_param :keys, :array, :default => [], value_type: :string
 
       config_section :buffer do
         config_set_default :flush_mode, :immediate
@@ -42,63 +32,66 @@ module Fluent
       def configure(conf)
         super
 
-        if @endpoint_url.nil?
-          raise Fluent::ConfigError, "sentry: missing parameter for 'endpoint_url'"
+        if @dsn.nil?
+          raise Fluent::ConfigError, "sentry: missing parameter for 'dsn'"
         end
 
-        Sentry.init do |config|
-          config.environment = 'fluentd'
-          config.dsn = @endpoint_url
-          config.send_default_pii = true
-          config.send_modules = false
-          config.transport.timeout = 2
-          config.breadcrumbs_logger = [:sentry_logger, :http_logger]
-          config.before_send = lambda do |event, hint|
-            log.debug(event, hint)
-            if hint[:exception].is_a?(ZeroDivisionError)
-              nil
-            else
-              event
-            end
-          end
-          config.before_breadcrumb = lambda do |breadcrumb, hint|
-            log.debug("wewweerwr")
-            log.debug(breadcrumb, hint)
-            breadcrumb.message = "foo"
-          end
-        end
+        # Sentry.init do |config|
+        #   config.dsn = @dsn
+        #   config.environment = @environment
+        #   config.send_modules = false
+        #   config.transport.timeout = 5
+        #   config.before_send = lambda do |event, hint|
+        #     event.contexts.delete(:os)
+        #     event.contexts.delete(:runtime)
+
+        #     event.release = nil
+        #     event.platform = nil
+        #     event.sdk = nil
+
+        #     event
+        #   end
+        # end
+
+        config = Sentry::Configuration.new
+        config.dsn = @dsn
+        config.environment = @environment
+        config.send_modules = false
+        config.transport.timeout = 5
+
+        @client = Sentry::Client.new(config)
       end
 
       def write(chunk)
         chunk.msgpack_each do |tag, time, record|
           begin
-            Sentry.with_scope do |scope|
-              scope.set_user(id: 1)
-              scope.set_tags(foo: "bar")
+            # Sentry.with_scope do |scope|
+            #   scope.set_user(record.select{ |key| @user_keys.include?(key) })
+            #   scope.set_tags(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
+            #   scope.set_tag(:timestamp, record[@timestamp] || Time.at(time).utc.strftime('%Y-%m-%d %H:%M:%S'))
+            #   scope.set_extras(@keys.length() > 0 ? record.select{ |key| @keys.include?(key) } : record)
+            #   scope.set_context('data', { origin_data: record })
 
-              scope.set_context(
-                'character',
-                {
-                  timestamp: record['timestamp'] || Time.at(time).utc.strftime('%Y-%m-%dT%H:%M:%S'),
-                  time_spent: record['time_spent'] || nil,
-                  level: record['level'] || @default_level,
-                  logger: record['logger'] || @default_logger,
-                  culprit: record['culprit'] || nil,
-                  server_name: record['server_name'] || `#{@hostname_command}`.chomp,
-                  # release: record['release'] if record['release'],
-                  tags: record['tags'],
-                  extra: record.reject{ |key| EVENT_KEYS.include?(key) }
-                }
-              )
+            #   event = Sentry.capture_event(Sentry::Event.new(
+            #     configuration: Sentry.get_current_hub.configuration,
+            #     message: @title
+            #   ))
+            # end
 
-              scope.add_breadcrumb(Sentry::Breadcrumb.new(
-                category: "auth",
-                message: "Authenticated user 1111",
-                level: "info"
-              ))
 
-              Sentry.capture_message(record['message'] || "test message", level: record['level'] || @default_level)
-            end
+            event = Sentry::Event.new(configuration: @client.configuration)
+
+            event.message = @title
+            event.level = record['level'] || @level
+            event.timestamp = record[@timestamp] || Time.at(time).utc.strftime('%Y-%m-%dT%H:%M:%S')
+
+            event.user = record.select{ |key| @user_keys.include?(key) }
+            event.extra = @keys.length() > 0 ? record.select{ |key| @keys.include?(key) } : record
+            event.contexts = {'data' => { origin_data: record }}
+            event.tags = event.tags.merge({ :platform => tag })
+              .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
+
+            @client.send_event(event)
           rescue => e
             log.error("Sentry Error:", :error_class => e.class, :error => e.message)
           end

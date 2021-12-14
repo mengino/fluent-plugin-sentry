@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.email   = ["mengino@outlook.com"]
 
   spec.summary       = %q{fluent plugin sentry.}
-  spec.description   = %q{A output plugin which sends data to sentry with sentry-ruby sdk.}
+  spec.description   = %q{A fluent output plugin which integrated with sentry-ruby sdk.}
   spec.homepage      = "https://github.com/mengino/fluent-plugin-sentry"
   spec.license       = "Apache-2.0"
 

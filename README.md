@@ -2,7 +2,7 @@
 
 [Fluentd](https://fluentd.org/) output plugin to do something.
 
-TODO: write description for you plugin.
+A fluent output plugin which integrated with sentry-ruby sdk
 
 ## Installation
 
@@ -48,6 +48,6 @@ $ fluent-plugin-config-format output sentry
 
 ## Copyright
 
-* Copyright(c) 2021- mengino
+* Copyright(c) 2021 mengino
 * License
   * Apache License, Version 2.0
