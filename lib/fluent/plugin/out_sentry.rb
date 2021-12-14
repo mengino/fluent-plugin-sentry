@@ -36,23 +36,6 @@ module Fluent
           raise Fluent::ConfigError, "sentry: missing parameter for 'dsn'"
         end
 
-        # Sentry.init do |config|
-        #   config.dsn = @dsn
-        #   config.environment = @environment
-        #   config.send_modules = false
-        #   config.transport.timeout = 5
-        #   config.before_send = lambda do |event, hint|
-        #     event.contexts.delete(:os)
-        #     event.contexts.delete(:runtime)
-
-        #     event.release = nil
-        #     event.platform = nil
-        #     event.sdk = nil
-
-        #     event
-        #   end
-        # end
-
         config = Sentry::Configuration.new
         config.dsn = @dsn
         config.environment = @environment
@@ -65,20 +48,6 @@ module Fluent
       def write(chunk)
         chunk.msgpack_each do |tag, time, record|
           begin
-            # Sentry.with_scope do |scope|
-            #   scope.set_user(record.select{ |key| @user_keys.include?(key) })
-            #   scope.set_tags(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
-            #   scope.set_tag(:timestamp, record[@timestamp] || Time.at(time).utc.strftime('%Y-%m-%d %H:%M:%S'))
-            #   scope.set_extras(@keys.length() > 0 ? record.select{ |key| @keys.include?(key) } : record)
-            #   scope.set_context('data', { origin_data: record })
-
-            #   event = Sentry.capture_event(Sentry::Event.new(
-            #     configuration: Sentry.get_current_hub.configuration,
-            #     message: @title
-            #   ))
-            # end
-
-
             event = Sentry::Event.new(configuration: @client.configuration)
 
             event.message = @title
