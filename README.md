@@ -36,15 +36,45 @@ $ fluent-plugin-config-format output sentry
 
 ## Fluent::Plugin::SentryOutput
 
-* **default_level** (string) (optional): 
-  * Default value: `error`.
-* **default_logger** (string) (optional): 
-  * Default value: `fluentd`.
-* **endpoint_url** (string) (required): 
-* **flush_interval** (time) (optional): 
-  * Default value: `0`.
-* **hostname_command** (string) (optional): 
-  * Default value: `hostname`.
+### dsn (string) (required)
+
+### title (string) (optional)
+
+
+Default value: `test log`.
+
+### level (enum) (optional)
+
+
+Available values: fatal, error, warning, info, debug
+
+Default value: `info`.
+
+### timestamp (string) (optional)
+
+
+Default value: `timestamp`.
+
+### environment (string) (optional)
+
+
+Default value: `local`.
+
+### user_keys (array) (optional)
+
+
+Default value: `[]`.
+
+### tag_keys (array) (optional)
+
+
+Default value: `[]`.
+
+### keys (array) (optional)
+
+
+Default value: `[]`.
+
 
 ## Copyright
 

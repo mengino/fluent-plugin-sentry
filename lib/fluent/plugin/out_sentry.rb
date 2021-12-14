@@ -5,22 +5,16 @@ module Fluent
     class SentryOutput < Fluent::Plugin::Output
       Fluent::Plugin.register_output("sentry", self)
 
-      USER_KEYS = %w('id', 'username', 'email', 'ip_address')
-
-      config_param :flush_interval, :time, :default => 1
       config_param :dsn, :string, :secret => true
       config_param :title, :string, :default => 'test log'
       config_param :level, :enum, list: [:fatal, :error, :warning, :info, :debug], :default => 'info'
       config_param :timestamp, :string, :default => 'timestamp'
-      config_param :environment, :string, :default => 'dev'
+      config_param :environment, :string, :default => 'local'
 
       config_param :user_keys, :array, :default => [], value_type: :string
       config_param :tag_keys, :array, :default => [], value_type: :string
       config_param :keys, :array, :default => [], value_type: :string
 
-      config_section :buffer do
-        config_set_default :flush_mode, :immediate
-      end
 
       def initialize
         require 'time'
@@ -31,10 +25,6 @@ module Fluent
 
       def configure(conf)
         super
-
-        if @dsn.nil?
-          raise Fluent::ConfigError, "sentry: missing parameter for 'dsn'"
-        end
 
         config = Sentry::Configuration.new
         config.dsn = @dsn
