@@ -8,7 +8,6 @@ module Fluent
       config_param :dsn, :string, :secret => true
       config_param :title, :string, :default => 'test log'
       config_param :level, :enum, list: [:fatal, :error, :warning, :info, :debug], :default => 'info'
-      config_param :timestamp, :string, :default => 'timestamp'
       config_param :environment, :string, :default => 'local'
 
       config_param :user_keys, :array, :default => [], value_type: :string
@@ -42,12 +41,12 @@ module Fluent
 
             event.message = @title
             event.level = record['level'] || @level
-            event.timestamp = record[@timestamp] || Time.at(time).utc.strftime('%Y-%m-%dT%H:%M:%S')
 
             event.user = record.select{ |key| @user_keys.include?(key) }
             event.extra = @keys.length() > 0 ? record.select{ |key| @keys.include?(key) } : record
             event.contexts = {'data' => { origin_data: record }}
             event.tags = event.tags.merge({ :platform => tag })
+              .merge({ :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S') })
               .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
 
             @client.send_event(event)

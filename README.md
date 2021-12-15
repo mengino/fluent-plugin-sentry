@@ -50,11 +50,6 @@ Available values: fatal, error, warning, info, debug
 
 Default value: `info`.
 
-### timestamp (string) (optional)
-
-
-Default value: `timestamp`.
-
 ### environment (string) (optional)
 
 
