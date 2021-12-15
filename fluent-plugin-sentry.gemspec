@@ -4,8 +4,8 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 Gem::Specification.new do |spec|
   spec.name    = "fluent-plugin-sentry"
   spec.version = "0.1.0"
-  spec.authors = ["mengino"]
-  spec.email   = ["mengino@outlook.com"]
+  spec.authors = ["buffalo"]
+  spec.email   = ["buffalobigboy@gmail.com"]
 
   spec.summary       = %q{fluent plugin sentry.}
   spec.description   = %q{A fluent output plugin which integrated with sentry-ruby sdk.}
