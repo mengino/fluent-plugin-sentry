@@ -32,12 +32,16 @@ $ bundle
 
 ### dsn (string) (required)
 
+
+
 ### title (string) (optional)
 
 
-Default value: `test log`.
+
+Default value: `test`.
 
 ### level (enum) (optional)
+
 
 
 Available values: fatal, error, warning, info, debug
@@ -47,9 +51,19 @@ Default value: `info`.
 ### environment (string) (optional)
 
 
+
 Default value: `local`.
 
+### type (enum) (optional)
+
+
+
+Available values: event, exception
+
+Default value: `event`.
+
 ### user_keys (array) (optional)
+
 
 
 Default value: `[]`.
@@ -57,12 +71,20 @@ Default value: `[]`.
 ### tag_keys (array) (optional)
 
 
+
 Default value: `[]`.
 
 ### keys (array) (optional)
 
 
+
 Default value: `[]`.
+
+### lang (string) (optional)
+
+
+
+Default value: `php`.
 
 
 ## Copyright
