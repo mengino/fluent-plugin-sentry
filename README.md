@@ -28,12 +28,6 @@ $ bundle
 
 ## Configuration
 
-You can generate configuration template:
-
-```
-$ fluent-plugin-config-format output sentry
-```
-
 ## Fluent::Plugin::SentryOutput
 
 ### dsn (string) (required)
