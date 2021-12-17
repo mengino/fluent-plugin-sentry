@@ -3,7 +3,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name    = "fluent-plugin-sentry-ruby"
-  spec.version = "0.1.0"
+  spec.version = "0.2.0"
   spec.authors = ["buffalo"]
   spec.email   = ["buffalobigboy@gmail.com"]
 
