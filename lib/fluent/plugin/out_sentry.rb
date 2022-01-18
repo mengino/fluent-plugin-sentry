@@ -55,7 +55,7 @@ module Fluent
             elsif @type === :exception
               event = event.to_hash
               event['exception'] = Sentry::CustomExceptionInterface.new(
-                type: 'FatalThrowableError',
+                type: @title,
                 message: record['message'],
                 stacktrace: Sentry::StacktraceInterface.new(frames: [Sentry::CustomStacktraceFrame.new(
                   filename: 'index' + '.' + @lang,
@@ -63,6 +63,7 @@ module Fluent
                   post_context: record['stack']
                 )])
               ).to_hash
+              event['tags'] = { :timestamp => Time.strptime(record['timestamp'], '%d-%b-%Y %H:%M:%S %Z') }
             end
 
             @client.send_event(event)
