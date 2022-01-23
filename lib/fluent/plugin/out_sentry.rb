@@ -16,7 +16,11 @@ module Fluent
       config_param :tag_keys, :array, :default => [], value_type: :string
       config_param :keys, :array, :default => [], value_type: :string
       # for exception
-      config_param :lang, :string, :default => 'php'
+      config_param :e_message, :string, :default => 'message'
+      config_param :e_describe, :string, :default => 'describe'
+      config_param :e_filename, :string, :default => 'filename'
+      config_param :e_stack, :string, :default => 'stack'
+      config_param :e_line, :string, :default => 'line'
 
 
       def initialize
@@ -41,11 +45,11 @@ module Fluent
           begin
             event = Sentry::Event.new(configuration: @client.configuration)
 
-            event.message = record['message'] || @title
             event.level = (record['level'] || @level).downcase
             event.environment = record['env'] || @environment
 
             if @type === :event
+              event.message = record['message'] || @title
               event.user = record.select{ |key| @user_keys.include?(key) }
               event.extra = @keys.length() > 0 ? record.select{ |key| @keys.include?(key) } : record
               event.contexts = {'data' => { origin_data: record }}
@@ -55,15 +59,17 @@ module Fluent
             elsif @type === :exception
               event = event.to_hash
               event['exception'] = Sentry::CustomExceptionInterface.new(
-                type: @title,
-                message: record['message'],
+                type: record['message'] || @title,
+                message: (record[@e_describe] + (record[@e_line] ? (' on line:' + record[@e_line]) : '')) || '',
                 stacktrace: Sentry::StacktraceInterface.new(frames: [Sentry::CustomStacktraceFrame.new(
-                  filename: 'index' + '.' + @lang,
-                  context_line: record['message'],
-                  post_context: record['stack']
+                  filename: record[@e_filename] || '',
+                  context_line: (record[@e_describe] + (record[@e_line] ? (' on line:' + record[@e_line]) : '')) || '',
+                  post_context: record[@e_stack] || (record[@e_describe] || ''),
                 )])
               ).to_hash
-              event['tags'] = { :timestamp => Time.strptime(record['timestamp'], '%d-%b-%Y %H:%M:%S %Z') }
+              event['tags'] = { :log_tag => tag }
+                .merge({ :timestamp => Time.at(time).strftime('%d-%b-%Y %H:%M:%S %Z') })
+                .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
             end
 
             @client.send_event(event)
