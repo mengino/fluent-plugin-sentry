@@ -10,7 +10,7 @@ module Fluent
       config_param :title, :string, :default => 'test'
       config_param :level, :enum, list: [:fatal, :error, :warning, :info, :debug], :default => 'info'
       config_param :environment, :string, :default => 'local'
-      config_param :type, :enum, list: [ :event, :exception], :default => :event
+      config_param :type, :enum, list: [:event, :exception], :default => :event
       # for event
       config_param :user_keys, :array, :default => [], value_type: :string
       config_param :tag_keys, :array, :default => [], value_type: :string
