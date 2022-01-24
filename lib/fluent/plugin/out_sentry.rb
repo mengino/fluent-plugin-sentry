@@ -14,7 +14,7 @@ module Fluent
       # for event
       config_param :user_keys, :array, :default => [], value_type: :string
       config_param :tag_keys, :array, :default => [], value_type: :string
-      config_param :keys, :array, :default => [], value_type: :string
+      config_param :data_keys, :array, :default => [], value_type: :string
       # for exception
       config_param :e_message, :string, :default => 'message'
       config_param :e_describe, :string, :default => 'describe'
