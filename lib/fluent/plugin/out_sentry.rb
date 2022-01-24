@@ -49,17 +49,19 @@ module Fluent
             event.environment = record['env'] || @environment
 
             if @type === :event
-              event.message = record['message'] || @title
+              log.warn(record, @tag_keys, @user_keys, @data_keys)
+              event.message = record['message']
               event.user = record.select{ |key| @user_keys.include?(key) }
               event.extra = @data_keys.length() > 0 ? record.select{ |key| @data_keys.include?(key) } : record
               event.contexts = {'data' => { origin_data: record }}
-              event.tags = event.tags.merge({ :log_tag => tag })
+              event.tags = event.tags.merge({ :tag => tag })
                 .merge({ :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S %Z') })
                 .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
+              event = event.to_hash
             elsif @type === :exception
               event = event.to_hash
               event['exception'] = Sentry::CustomExceptionInterface.new(
-                type: record['message'] || @title,
+                type: record['message'] || '',
                 message: (record[@e_describe] + (record[@e_line] ? (' on line:' + record[@e_line]) : '')) || '',
                 stacktrace: Sentry::StacktraceInterface.new(frames: [Sentry::CustomStacktraceFrame.new(
                   filename: record[@e_filename] || '',
@@ -67,10 +69,12 @@ module Fluent
                   post_context: record[@e_stack] || (record[@e_describe] || ''),
                 )])
               ).to_hash
-              event['tags'] = { :log_tag => tag }
+              event['tags'] = { :tag => tag }
                 .merge({ :timestamp => Time.at(time).strftime('%d-%b-%Y %H:%M:%S %Z') })
                 .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
             end
+
+            event['logger'] = @title
 
             @client.send_event(event)
           rescue => e
