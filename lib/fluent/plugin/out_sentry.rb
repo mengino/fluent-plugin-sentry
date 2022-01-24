@@ -49,7 +49,6 @@ module Fluent
             event.environment = record['env'] || @environment
 
             if @type === :event
-              log.warn(record, @tag_keys, @user_keys, @data_keys)
               event.message = record['message']
               event.user = record.select{ |key| @user_keys.include?(key) }
               event.extra = @data_keys.length() > 0 ? record.select{ |key| @data_keys.include?(key) } : record
@@ -58,23 +57,48 @@ module Fluent
                 .merge({ :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S %Z') })
                 .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
               event = event.to_hash
+
+              event['logger'] = @title
             elsif @type === :exception
-              event = event.to_hash
-              event['exception'] = Sentry::CustomExceptionInterface.new(
-                type: record['message'] || '',
-                message: (record[@e_describe] + (record[@e_line] ? (' on line:' + record[@e_line]) : '')) || '',
-                stacktrace: Sentry::StacktraceInterface.new(frames: [Sentry::CustomStacktraceFrame.new(
-                  filename: record[@e_filename] || '',
-                  context_line: (record[@e_describe] + (record[@e_line] ? (' on line:' + record[@e_line]) : '')) || '',
-                  post_context: record[@e_stack] || (record[@e_describe] || ''),
-                )])
-              ).to_hash
-              event['tags'] = { :tag => tag }
+              event.tags = { :tag => tag }
                 .merge({ :timestamp => Time.at(time).strftime('%d-%b-%Y %H:%M:%S %Z') })
                 .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
-            end
 
-            event['logger'] = @title
+              event = event.to_hash
+
+              event['logger'] = @title
+
+              frame = Array.new
+              if record.include?(@e_stack)
+                record[@e_stack].split("\n") do |value|
+                  match = value.match(/\#(?<no>\d+) (?<filename>.*?)\((?<lineno>\d+)\): (?<context_line>[\s\S]+)/)
+                  if match != nil
+                    frame.unshift(Sentry::CustomStacktraceFrame.new(
+                      filename: match[:filename],
+                      context_line: match[:context_line],
+                      pre_context: "//...\n",
+                      post_context: "//...\n",
+                      lineno: Integer(match[:lineno]),
+                    ))
+                  end
+                end
+              elsif
+                frame.push(Sentry::CustomStacktraceFrame.new(
+                  filename: record.include?(@e_filename) ? record[@e_filename] : '',
+                  context_line: record.include?(@e_describe) ? record[@e_describe] : '',
+                  pre_context: "//...\n",
+                  post_context: "//...\n",
+                  lineno: record.include?(@e_line) ? Integer(record[@e_line]) : 1
+                ))
+              end
+
+              event['exception'] = Sentry::CustomExceptionInterface.new(
+                type: record['message'] || '',
+                message: record.include?(@e_describe) ? record[@e_describe] : '',
+                stacktrace: Sentry::StacktraceInterface.new(frames: frame)
+              ).to_hash
+              event['message'] = record.include?(@e_describe) ? (record[@e_describe] + ' in ' + record[@e_filename] + ' on line ' + record[@e_line]) : ''
+            end
 
             @client.send_event(event)
           rescue => e
