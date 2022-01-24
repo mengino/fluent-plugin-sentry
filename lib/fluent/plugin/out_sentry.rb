@@ -51,10 +51,10 @@ module Fluent
             if @type === :event
               event.message = record['message'] || @title
               event.user = record.select{ |key| @user_keys.include?(key) }
-              event.extra = @keys.length() > 0 ? record.select{ |key| @keys.include?(key) } : record
+              event.extra = @data_keys.length() > 0 ? record.select{ |key| @data_keys.include?(key) } : record
               event.contexts = {'data' => { origin_data: record }}
               event.tags = event.tags.merge({ :log_tag => tag })
-                .merge({ :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S') })
+                .merge({ :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S %Z') })
                 .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
             elsif @type === :exception
               event = event.to_hash
