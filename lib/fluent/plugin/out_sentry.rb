@@ -7,7 +7,6 @@ module Fluent
       Fluent::Plugin.register_output("sentry", self)
 
       config_param :dsn, :string
-      config_param :title, :string, :default => 'test'
       config_param :level, :enum, list: [:fatal, :error, :warning, :info, :debug], :default => 'info'
       config_param :environment, :string, :default => 'local'
       config_param :type, :enum, list: [:event, :exception], :default => :event
@@ -49,24 +48,22 @@ module Fluent
             event.environment = record['env'] || @environment
 
             if @type === :event
-              event.message = record['message']
+              event.message = record['message'] || tag
               event.user = record.select{ |key| @user_keys.include?(key) }
               event.extra = @data_keys.length() > 0 ? record.select{ |key| @data_keys.include?(key) } : record
               event.contexts = {'data' => { origin_data: record }}
-              event.tags = event.tags.merge({ :tag => tag })
-                .merge({ :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S %Z') })
+              event.tags = event.tags.merge({ :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S %Z') })
                 .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
               event = event.to_hash
 
-              event['logger'] = @title
+              event['logger'] = tag
             elsif @type === :exception
-              event.tags = { :tag => tag }
-                .merge({ :timestamp => Time.at(time).strftime('%d-%b-%Y %H:%M:%S %Z') })
+              event.tags = { :timestamp => Time.at(time).strftime('%Y-%m-%d %H:%M:%S %Z') }
                 .merge(record.select{ |key| (@tag_keys + @user_keys).include?(key) })
 
               event = event.to_hash
 
-              event['logger'] = @title
+              event['logger'] = tag
 
               frame = Array.new
               if record.include?(@e_stack)
